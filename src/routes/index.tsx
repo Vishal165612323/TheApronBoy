@@ -341,7 +341,7 @@ function ResultScreen({ answers, statuses, timeUsed }: { answers: Record<number,
     <div className="min-h-screen bg-slate-100 px-4 py-10 text-slate-800">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 flex items-center justify-center gap-3 text-center">
-          <img src="/logo.png" alt="The Apron Boy logo" className="h-14 w-14 rounded-full bg-black object-cover" />
+          <img src="https://yt3.googleusercontent.com/qdo1xrlhfa82iLMS4yqWLJtgFt4-jizxXkvR_6HuYzYIv65nN0zg3-J3YDEwRK405xh_ASSgtQ=s160-c-k-c0x00ffffff-no-rj" alt="The Apron Boy logo" className="h-14 w-14 rounded-full bg-black object-cover" />
           <div className="text-left">
             <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Exam Summary Report</h1>
             <p className="text-xs text-slate-500">Dr. Shashi Kumar · NEET Demo Mock Test · The Apron Boy CBT</p>
