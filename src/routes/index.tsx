@@ -79,6 +79,8 @@ function ExamSimulator() {
   });
   const [selected, setSelected] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  // Mobile off-canvas question palette ("sidebar") visibility
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     if (submitted) return;
@@ -89,6 +91,17 @@ function ExamSimulator() {
     const t = setTimeout(() => setTimeLeft((v) => v - 1), 1000);
     return () => clearTimeout(t);
   }, [timeLeft, submitted]);
+
+  // Lock background scroll while the mobile sidebar drawer is open
+  useEffect(() => {
+    if (paletteOpen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [paletteOpen]);
 
   const question = QUESTIONS.find((q) => q.id === currentQ)!;
 
@@ -172,38 +185,48 @@ function ExamSimulator() {
     return { sub, ids: Array.from({ length: 10 }, (_, i) => start + i) };
   }).find((g) => g.sub === activeSubject)!;
 
+  const answeredCount = stats.answered + stats.ansMarked;
+
+  const selectQuestion = (id: number) => {
+    setCurrentQ(id);
+    setPaletteOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
       {/* Top Branding */}
-      <header className="flex items-center justify-between bg-white px-6 py-3 shadow-sm">
+      <header className="flex flex-col gap-3 bg-white px-3 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-3">
-          <img src="https://yt3.googleusercontent.com/qdo1xrlhfa82iLMS4yqWLJtgFt4-jizxXkvR_6HuYzYIv65nN0zg3-J3YDEwRK405xh_ASSgtQ=s160-c-k-c0x00ffffff-no-rj" alt="The Apron Boy logo" className="h-12 w-12 rounded-full bg-black object-cover" />
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          <img src="https://yt3.googleusercontent.com/qdo1xrlhfa82iLMS4yqWLJtgFt4-jizxXkvR_6HuYzYIv65nN0zg3-J3YDEwRK405xh_ASSgtQ=s160-c-k-c0x00ffffff-no-rj" alt="The Apron Boy logo" className="h-10 w-10 shrink-0 rounded-full bg-black object-cover sm:h-12 sm:w-12" />
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-bold tracking-tight text-slate-900 sm:text-xl">
               THE APRON BOY <span className="text-orange-500">|</span> <span className="text-emerald-600">CBT Portal</span>
             </h1>
-            <p className="text-xs italic text-slate-500">Excellence in Assessment</p>
+            <p className="hidden text-xs italic text-slate-500 sm:block">Excellence in Assessment</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 rounded-md border border-slate-300 bg-slate-50 px-4 py-2 text-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-200 text-2xl">👤</div>
-          <div className="space-y-0.5">
-            <div>Candidate Name : <span className="font-semibold text-orange-600">Dr. Shashi Kumar</span></div>
-            <div>Subject Name &nbsp;: <span className="font-semibold text-orange-600">NEET Demo Mock Test</span></div>
-            <div>Remaining Time : <span className={`rounded px-2 py-0.5 font-mono font-bold text-white ${timeLeft < 60 ? "bg-red-600 animate-pulse" : "bg-emerald-600"}`}>{formatTime(timeLeft)}</span></div>
+        <div className="flex w-full items-center gap-3 rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-xs sm:w-auto sm:px-4 sm:text-sm">
+          <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-md bg-slate-200 text-2xl sm:flex">👤</div>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="truncate">Candidate : <span className="font-semibold text-orange-600">Dr. Shashi Kumar</span></div>
+            <div className="truncate sm:block">Subject &nbsp;: <span className="font-semibold text-orange-600">NEET Demo Mock Test</span></div>
+            <div className="flex items-center gap-1.5">
+              <span>Time :</span>
+              <span className={`rounded px-2 py-0.5 font-mono font-bold text-white ${timeLeft < 60 ? "bg-red-600 animate-pulse" : "bg-emerald-600"}`}>{formatTime(timeLeft)}</span>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Sub header */}
-      <div className="flex items-center justify-between bg-orange-500 px-6 py-2 text-white">
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-2 text-lg font-extrabold tracking-wide">NEET EXAM</span>
+      <div className="flex flex-wrap items-center gap-2 bg-orange-500 px-3 py-2 text-white sm:px-6">
+        <span className="hidden px-1 py-2 text-lg font-extrabold tracking-wide sm:inline">NEET EXAM</span>
+        <div className="flex flex-1 items-center gap-2 overflow-x-auto">
           {SUBJECTS.map((s) => (
             <button
               key={s}
               onClick={() => goToSubject(s)}
-              className={`rounded px-4 py-2 text-sm font-bold tracking-wide transition ${
+              className={`shrink-0 rounded px-3 py-2 text-xs font-bold tracking-wide transition sm:px-4 sm:text-sm ${
                 activeSubject === s ? "bg-white text-orange-600 shadow" : "bg-sky-500 text-white hover:bg-sky-600"
               }`}
             >
@@ -211,24 +234,32 @@ function ExamSimulator() {
             </button>
           ))}
         </div>
-        <div className="ml-auto flex items-center gap-2 text-sm">
-          <span className="font-semibold">Paper Language:</span>
-          <select className="rounded border border-white/40 bg-white px-3 py-1.5 text-slate-800">
+        <div className="flex items-center gap-2 text-xs sm:text-sm">
+          <span className="hidden font-semibold sm:inline">Paper Language:</span>
+          <select className="rounded border border-white/40 bg-white px-2 py-1.5 text-slate-800 sm:px-3">
             <option>English</option>
             <option>Hindi</option>
           </select>
         </div>
+        {/* Mobile-only toggle for the question palette sidebar */}
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className="flex shrink-0 items-center gap-1.5 rounded bg-indigo-700 px-3 py-2 text-xs font-bold tracking-wide text-white shadow hover:bg-indigo-800 md:hidden"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5h18M3 12h18M3 19h18" /></svg>
+          {answeredCount}/30
+        </button>
       </div>
 
       {/* Main */}
-      <div className="grid grid-cols-[1fr_360px] gap-4 p-4">
+      <div className="grid grid-cols-1 gap-4 p-3 sm:p-4 md:grid-cols-[1fr_360px]">
         {/* Question */}
-        <div className="rounded-md bg-white p-6 shadow-sm">
+        <div className="rounded-md bg-white p-4 shadow-sm sm:p-6">
           <div className="mb-4 flex items-center justify-between border-b pb-3">
-            <h2 className="text-lg font-bold text-slate-900">Question {currentQ}:</h2>
-            <span className="text-sm text-slate-500">{question.subject}</span>
+            <h2 className="text-base font-bold text-slate-900 sm:text-lg">Question {currentQ}:</h2>
+            <span className="text-xs text-slate-500 sm:text-sm">{question.subject}</span>
           </div>
-          <p className="mb-6 text-base leading-relaxed text-slate-800">{question.text}</p>
+          <p className="mb-6 text-sm leading-relaxed text-slate-800 sm:text-base">{question.text}</p>
           <div className="space-y-3">
             {question.options.map((opt, i) => (
               <label
@@ -242,40 +273,60 @@ function ExamSimulator() {
                   name={`q-${currentQ}`}
                   checked={selected === i}
                   onChange={() => setSelected(i)}
-                  className="h-4 w-4 accent-emerald-600"
+                  className="h-4 w-4 shrink-0 accent-emerald-600"
                 />
-                <span className="font-semibold text-slate-600">({i + 1})</span>
-                <span className="text-slate-800">{opt}</span>
+                <span className="shrink-0 font-semibold text-slate-600">({i + 1})</span>
+                <span className="text-sm text-slate-800 sm:text-base">{opt}</span>
               </label>
             ))}
           </div>
 
           {/* Action buttons */}
-          <div className="mt-8 flex flex-wrap gap-2 border-t pt-4">
-            <button onClick={handleSaveNext} className="rounded bg-emerald-600 px-4 py-2 text-xs font-bold tracking-wide text-white hover:bg-emerald-700">SAVE &amp; NEXT</button>
-            <button onClick={() => { handleMarkNext(); }} className="rounded bg-orange-500 px-4 py-2 text-xs font-bold tracking-wide text-white hover:bg-orange-600">SAVE &amp; MARK FOR REVIEW</button>
-            <button onClick={handleClear} className="rounded border border-slate-300 bg-white px-4 py-2 text-xs font-bold tracking-wide text-slate-700 hover:bg-slate-100">CLEAR RESPONSE</button>
-            <button onClick={handleMarkNext} className="rounded bg-indigo-600 px-4 py-2 text-xs font-bold tracking-wide text-white hover:bg-indigo-700">MARK FOR REVIEW &amp; NEXT</button>
+          <div className="mt-8 grid grid-cols-2 gap-2 border-t pt-4 sm:flex sm:flex-wrap">
+            <button onClick={handleSaveNext} className="rounded bg-emerald-600 px-3 py-2.5 text-[11px] font-bold tracking-wide text-white hover:bg-emerald-700 sm:px-4 sm:text-xs">SAVE &amp; NEXT</button>
+            <button onClick={handleMarkNext} className="rounded bg-orange-500 px-3 py-2.5 text-[11px] font-bold tracking-wide text-white hover:bg-orange-600 sm:px-4 sm:text-xs">SAVE &amp; MARK FOR REVIEW</button>
+            <button onClick={handleClear} className="rounded border border-slate-300 bg-white px-3 py-2.5 text-[11px] font-bold tracking-wide text-slate-700 hover:bg-slate-100 sm:px-4 sm:text-xs">CLEAR RESPONSE</button>
+            <button onClick={handleMarkNext} className="rounded bg-indigo-600 px-3 py-2.5 text-[11px] font-bold tracking-wide text-white hover:bg-indigo-700 sm:px-4 sm:text-xs">MARK FOR REVIEW &amp; NEXT</button>
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <div className="flex gap-2">
-              <button onClick={() => currentQ > 1 && setCurrentQ(currentQ - 1)} className="rounded border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100">&lt;&lt; BACK</button>
-              <button onClick={() => currentQ < 30 && setCurrentQ(currentQ + 1)} className="rounded border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100">NEXT &gt;&gt;</button>
+              <button onClick={() => currentQ > 1 && setCurrentQ(currentQ - 1)} className="rounded border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 sm:px-4">&lt;&lt; BACK</button>
+              <button onClick={() => currentQ < 30 && setCurrentQ(currentQ + 1)} className="rounded border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 sm:px-4">NEXT &gt;&gt;</button>
             </div>
-            <button onClick={() => setSubmitted(true)} className="rounded bg-emerald-600 px-6 py-2 text-sm font-bold text-white shadow hover:bg-emerald-700">SUBMIT</button>
+            <button onClick={() => setSubmitted(true)} className="rounded bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow hover:bg-emerald-700 sm:px-6">SUBMIT</button>
           </div>
         </div>
 
-        {/* Palette */}
-        <aside className="rounded-md bg-white p-4 shadow-sm">
+        {/* Backdrop for mobile sidebar drawer */}
+        {paletteOpen && (
+          <div
+            onClick={() => setPaletteOpen(false)}
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Palette — static sidebar on desktop, off-canvas drawer on mobile */}
+        <aside
+          className={`fixed inset-y-0 right-0 z-50 w-[85%] max-w-sm transform overflow-y-auto bg-white p-4 shadow-sm transition-transform duration-300 ease-out
+            ${paletteOpen ? "translate-x-0" : "translate-x-full"}
+            md:static md:z-auto md:w-auto md:max-w-none md:translate-x-0 md:rounded-md md:shadow-sm`}
+        >
+          <div className="mb-4 flex items-center justify-between md:hidden">
+            <h3 className="text-sm font-bold text-slate-900">Question Palette</h3>
+            <button onClick={() => setPaletteOpen(false)} className="rounded p-1.5 text-slate-500 hover:bg-slate-100" aria-label="Close palette">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
           <div className="mb-4 grid grid-cols-2 gap-2 text-xs">
             <Legend color="bg-slate-300 text-slate-800" count={stats.notVisited} label="Not Visited" />
             <Legend color="bg-red-500 text-white" count={stats.notAnswered} label="Not Answered" />
             <Legend color="bg-emerald-500 text-white" count={stats.answered} label="Answered" />
             <Legend color="bg-purple-600 text-white" count={stats.marked} label="Marked for Review" />
             <div className="col-span-2 flex items-center gap-2">
-              <span className="relative flex h-7 w-7 items-center justify-center rounded bg-purple-600 text-xs font-bold text-white">
+              <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded bg-purple-600 text-xs font-bold text-white">
                 {stats.ansMarked}
                 <span className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white" />
               </span>
@@ -288,7 +339,7 @@ function ExamSimulator() {
           </div>
           <div className="grid grid-cols-5 gap-2">
             {palette.ids.map((id) => (
-              <PaletteBtn key={id} id={id} status={statuses[id]} active={id === currentQ} onClick={() => setCurrentQ(id)} />
+              <PaletteBtn key={id} id={id} status={statuses[id]} active={id === currentQ} onClick={() => selectQuestion(id)} />
             ))}
           </div>
         </aside>
@@ -300,7 +351,7 @@ function ExamSimulator() {
 function Legend({ color, count, label }: { color: string; count: number; label: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className={`flex h-7 w-7 items-center justify-center rounded text-xs font-bold ${color}`}>{count}</span>
+      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded text-xs font-bold ${color}`}>{count}</span>
       <span className="text-slate-700">{label}</span>
     </div>
   );
@@ -338,26 +389,26 @@ function ResultScreen({ answers, statuses, timeUsed }: { answers: Record<number,
   const pct = Math.max(0, Math.round((score / maxScore) * 100));
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10 text-slate-800">
+    <div className="min-h-screen bg-slate-100 px-3 py-6 text-slate-800 sm:px-4 sm:py-10">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-6 flex items-center justify-center gap-3 text-center">
-          <img src="https://yt3.googleusercontent.com/qdo1xrlhfa82iLMS4yqWLJtgFt4-jizxXkvR_6HuYzYIv65nN0zg3-J3YDEwRK405xh_ASSgtQ=s160-c-k-c0x00ffffff-no-rj" alt="The Apron Boy logo" className="h-14 w-14 rounded-full bg-black object-cover" />
-          <div className="text-left">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Exam Summary Report</h1>
+        <div className="mb-6 flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center">
+          <img src="https://yt3.googleusercontent.com/qdo1xrlhfa82iLMS4yqWLJtgFt4-jizxXkvR_6HuYzYIv65nN0zg3-J3YDEwRK405xh_ASSgtQ=s160-c-k-c0x00ffffff-no-rj" alt="The Apron Boy logo" className="h-12 w-12 rounded-full bg-black object-cover sm:h-14 sm:w-14" />
+          <div className="text-center sm:text-left">
+            <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Exam Summary Report</h1>
             <p className="text-xs text-slate-500">Dr. Shashi Kumar · NEET Demo Mock Test · The Apron Boy CBT</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-8">
           {/* Score hero */}
-          <div className="mb-8 grid grid-cols-1 items-center gap-6 rounded-xl border border-slate-200 bg-slate-50 p-6 md:grid-cols-[auto_1fr]">
-            <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white ring-4 ring-emerald-500">
-              <span className="text-4xl font-black text-emerald-600">{score}</span>
+          <div className="mb-8 grid grid-cols-1 items-center gap-6 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6 md:grid-cols-[auto_1fr]">
+            <div className="mx-auto flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white ring-4 ring-emerald-500 sm:mx-0 sm:h-32 sm:w-32">
+              <span className="text-3xl font-black text-emerald-600 sm:text-4xl">{score}</span>
               <span className="text-xs text-slate-500">/ {maxScore}</span>
             </div>
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-orange-600">Total Score</div>
-              <div className="text-2xl font-bold text-slate-900">{pct}% Performance</div>
+              <div className="text-xl font-bold text-slate-900 sm:text-2xl">{pct}% Performance</div>
               <div className="mt-2 h-2 w-full overflow-hidden rounded bg-slate-200">
                 <div className="h-full bg-gradient-to-r from-orange-500 to-emerald-500" style={{ width: `${pct}%` }} />
               </div>
@@ -366,21 +417,21 @@ function ResultScreen({ answers, statuses, timeUsed }: { answers: Record<number,
           </div>
 
           {/* Stats grid */}
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
             <StatCard label="Correct" value={correct} accent="text-emerald-600" />
             <StatCard label="Incorrect" value={incorrect} accent="text-red-600" />
             <StatCard label="Attempted" value={attempted} accent="text-sky-600" />
             <StatCard label="Unanswered" value={unanswered} accent="text-amber-600" />
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-4 md:grid-cols-3">
             <StatCard label="Total Questions" value={30} />
             <StatCard label="Time Used" value={formatTime(timeUsed)} />
             <StatCard label="Marked for Review" value={Object.values(statuses).filter(s => s === "marked" || s === "answered-marked").length} />
           </div>
 
           {/* CTA dual buttons */}
-          <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="mt-8 grid grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-2">
             <a
               href="tel:+919175013816"
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-orange-600"
@@ -413,10 +464,9 @@ function ResultScreen({ answers, statuses, timeUsed }: { answers: Record<number,
 
 function StatCard({ label, value, accent = "text-slate-900" }: { label: string; value: number | string; accent?: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="text-xs uppercase tracking-wider text-slate-500">{label}</div>
-      <div className={`mt-1 text-2xl font-extrabold ${accent}`}>{value}</div>
+    <div className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
+      <div className="text-[10px] uppercase tracking-wider text-slate-500 sm:text-xs">{label}</div>
+      <div className={`mt-1 text-xl font-extrabold sm:text-2xl ${accent}`}>{value}</div>
     </div>
   );
 }
-
